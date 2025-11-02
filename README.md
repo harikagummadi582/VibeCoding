@@ -60,7 +60,7 @@ Special appreciation to everyone I met during the event — your collaboration a
 
 **Author:** Harika Gummadi  
 **LinkedIn:** [https://www.linkedin.com/in/harikagummadi](https://www.linkedin.com/in/harikagummadi)  
-**Email:** harikagummadi582@gmail.com  
+**Email:** gummadi.h@northeastern.edu  
 
 ---
 
