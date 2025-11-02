@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: flappy-kiro-data-pvc
+  namespace: flappy-kiro
+  labels:
+    app: flappy-kiro-backend
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 1Gi

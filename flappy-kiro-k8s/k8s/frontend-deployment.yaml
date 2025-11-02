@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flappy-kiro-frontend
+  namespace: flappy-kiro
+  labels:
+    app: flappy-kiro-frontend
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flappy-kiro-frontend
+  template:
+    metadata:
+      labels:
+        app: flappy-kiro-frontend
+        tier: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: 730335429650.dkr.ecr.us-west-2.amazonaws.com/flappy-kiro-frontend:latest
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            - name: BACKEND_SERVICE_URL
+              value: "http://flappy-kiro-backend-service:5000"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      restartPolicy: Always

@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: adot-collector-config
+  namespace: flappy-kiro
+data:
+  adot-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+      resource:
+        attributes:
+        - key: service.namespace
+          value: flappy-kiro
+          action: upsert
+
+    exporters:
+      awscloudwatchlogs:
+        log_group_name: "/aws/containerinsights/eks-kiro-demo/application"
+        log_stream_name: "flappy-kiro-logs"
+        region: us-west-2
+      
+      awsxray:
+        region: us-west-2
+        no_verify_ssl: false
+        local_mode: false
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [resource, batch]
+          exporters: [awsxray]
+        logs:
+          receivers: [otlp]
+          processors: [resource, batch]
+          exporters: [awscloudwatchlogs]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adot-collector
+  namespace: flappy-kiro
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: adot-collector
+  template:
+    metadata:
+      labels:
+        app: adot-collector
+    spec:
+      serviceAccountName: adot-collector-sa
+      containers:
+        - name: adot-collector
+          image: public.ecr.aws/aws-observability/aws-otel-collector:latest
+          command:
+            - "/awscollector"
+            - "--config=/conf/adot-config.yaml"
+          env:
+            - name: AWS_REGION
+              value: "us-west-2"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          ports:
+            - containerPort: 4317
+              name: grpc
+            - containerPort: 4318
+              name: http
+          volumeMounts:
+            - name: adot-collector-config-vol
+              mountPath: /conf
+      volumes:
+        - name: adot-collector-config-vol
+          configMap:
+            name: adot-collector-config
+            items:
+              - key: adot-config.yaml
+                path: adot-config.yaml
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adot-collector
+  namespace: flappy-kiro
+spec:
+  selector:
+    app: adot-collector
+  ports:
+    - name: grpc
+      port: 4317
+      targetPort: 4317
+    - name: http
+      port: 4318
+      targetPort: 4318
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: adot-collector-sa
+  namespace: flappy-kiro
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::730335429650:role/EKS-ADOT-ServiceAccount-Role
